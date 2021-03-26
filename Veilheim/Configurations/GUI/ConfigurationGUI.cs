@@ -15,11 +15,13 @@ using UnityEngine.PlayerLoop;
 using UnityEngine.UI;
 using Veilheim.AssetManagers;
 using Veilheim.AssetUtils;
+using Veilheim.PatchEvents;
+using Logger = Veilheim.Logger;
 using Object = UnityEngine.Object;
 
 namespace Veilheim.Configurations.GUI
 {
-    public class ConfigurationGUI
+    public class ConfigurationGUI : IPatchEventConsumer
     {
 
         private static GameObject GUIRoot;
@@ -29,6 +31,8 @@ namespace Veilheim.Configurations.GUI
         private static List<GameObject> entries = new List<GameObject>();
 
         private static List<GameObject> sections = new List<GameObject>();
+
+        private static CursorLockMode storedLockmode;
 
         public static void EnableGUIRoot()
         {
@@ -42,7 +46,9 @@ namespace Veilheim.Configurations.GUI
 
         public static void ToggleGUI()
         {
+            storedLockmode = Cursor.lockState;
             GUIRoot.SetActive(!GUIRoot.activeSelf);
+            GameCamera.instance.UpdateMouseCapture();
         }
 
         public static void EnableEntries()
@@ -76,8 +82,8 @@ namespace Veilheim.Configurations.GUI
                 GameObject section = CreateSection(property.Name, sectionEnabled, ContentGrid.transform);
                 ((RectTransform)section.transform).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                     BaseConfig.GetProps(property.PropertyType).Count(x => x.Name != nameof(BaseConfig.IsEnabled)) * 30f + 40f + 10f);
-                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, BaseConfig.GetProps(property.PropertyType).Count(x => x.Name != nameof(BaseConfig.IsEnabled)) * 30f+10f);
-                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,300f);
+                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, BaseConfig.GetProps(property.PropertyType).Count(x => x.Name != nameof(BaseConfig.IsEnabled)) * 30f + 10f);
+                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 300f);
                 foreach (var sectionProperty in BaseConfig.GetProps(property.PropertyType).Where(x => x.Name != nameof(BaseConfig.IsEnabled)))
                 {
                     GameObject entry = null;
@@ -107,8 +113,8 @@ namespace Veilheim.Configurations.GUI
                 GameObject section = CreateSection(property.Name, sectionEnabled, ContentGrid.transform);
                 ((RectTransform)section.transform).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                     BaseConfig.GetProps(property.PropertyType).Count(x => x.Name != nameof(BaseConfig.IsEnabled)) * 30f + 40f + 10f);
-                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, BaseConfig.GetProps(property.PropertyType).Count(x => x.Name != nameof(BaseConfig.IsEnabled)) * 30f+10f);
-                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,300f);
+                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, BaseConfig.GetProps(property.PropertyType).Count(x => x.Name != nameof(BaseConfig.IsEnabled)) * 30f + 10f);
+                ((RectTransform)section.transform.Find("Panel")).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 300f);
 
                 foreach (var sectionProperty in BaseConfig.GetProps(property.PropertyType).Where(x => x.Name != nameof(BaseConfig.IsEnabled)))
                 {
@@ -190,8 +196,6 @@ namespace Veilheim.Configurations.GUI
             return newEntry;
         }
 
-
-
         public static void RPC_IsAdmin(long sender, bool isAdmin)
         {
             if (ZNet.instance.IsClientInstance())
@@ -210,5 +214,18 @@ namespace Veilheim.Configurations.GUI
             }
         }
 
+        [PatchEvent(typeof(GameCamera), nameof(GameCamera.UpdateMouseCapture), PatchEventType.BlockingPrefix)]
+        public static void OverrideMouseCapture(GameCamera instance, ref bool cancel)
+        {
+            if (GUIRoot != null)
+            {
+                if (GUIRoot.activeSelf)
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                    cancel = true;
+                }
+            }
+        }
     }
 }
