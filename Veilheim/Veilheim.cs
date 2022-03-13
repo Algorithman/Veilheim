@@ -18,6 +18,7 @@ namespace Veilheim
 {
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
+    [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     internal class VeilheimPlugin : BaseUnityPlugin
     {
         public const string PluginGUID = "de.sirskunkalot.valheim.veilheim";
