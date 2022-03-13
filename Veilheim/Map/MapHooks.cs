@@ -34,9 +34,9 @@ namespace Veilheim.Map
         /// <summary>
         ///     CLIENT SIDE: Creates a <see cref="PortalSelectionGUI" /> when interacting with a portal
         /// </summary>
-        private static bool ShowPortalSelection(On.TeleportWorld.orig_Interact orig, TeleportWorld self, Humanoid human, bool hold)
+        private static bool ShowPortalSelection(On.TeleportWorld.orig_Interact orig, TeleportWorld self, Humanoid human, bool hold, bool alt)
         {
-            bool result = orig(self, human, hold);
+            bool result = orig(self, human, hold, alt);
             // only act on clients
             if (ZNet.instance.IsServerInstance())
             {

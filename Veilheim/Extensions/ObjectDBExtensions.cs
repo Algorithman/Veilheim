@@ -25,7 +25,6 @@ public static class ObjectDBExtensions
             consumablesTable.Append($"| {ind++}{Environment.NewLine}");
             consumablesTable.Append($"| {itemGameObject.name}{Environment.NewLine}");
             consumablesTable.Append($"| {item.m_shared.m_name}{Environment.NewLine}");
-            consumablesTable.Append($"| {Localization.instance.Localize(item.m_shared.m_name)}{Environment.NewLine}");
             consumablesTable.Append($"| {item.m_shared.m_maxStackSize}{Environment.NewLine}");
 
             if (item.m_shared.m_food > 0f)
@@ -53,7 +52,6 @@ public static class ObjectDBExtensions
             weaponsTable.Append($"| {ind++}{Environment.NewLine}");
             weaponsTable.Append($"| {itemGameObject.name}{Environment.NewLine}");
             weaponsTable.Append($"| {item.m_shared.m_name}{Environment.NewLine}");
-            weaponsTable.Append($"| {Localization.instance.Localize(item.m_shared.m_name)}{Environment.NewLine}");
             weaponsTable.Append($"| {item.m_shared.m_maxStackSize}{Environment.NewLine}");
             weaponsTable.Append($"| {item.m_shared.m_maxQuality}{Environment.NewLine}");
             weaponsTable.Append($"| {item.m_shared.m_maxDurability}{Environment.NewLine}");
@@ -90,7 +88,6 @@ public static class ObjectDBExtensions
             shieldsTable.Append($"| {ind++}{Environment.NewLine}");
             shieldsTable.Append($"| {itemGameObject.name}{Environment.NewLine}");
             shieldsTable.Append($"| {item.m_shared.m_name}{Environment.NewLine}");
-            shieldsTable.Append($"| {Localization.instance.Localize(item.m_shared.m_name)}{Environment.NewLine}");
             shieldsTable.Append($"| {item.m_shared.m_teleportable}{Environment.NewLine}");
             shieldsTable.Append($"| {item.m_shared.m_maxQuality}{Environment.NewLine}");
             shieldsTable.Append($"| {item.m_shared.m_maxDurability}{Environment.NewLine}");
@@ -117,7 +114,6 @@ public static class ObjectDBExtensions
             armorsTable.Append($"| {ind++}{Environment.NewLine}");
             armorsTable.Append($"| {itemGameObject.name}{Environment.NewLine}");
             armorsTable.Append($"| {item.m_shared.m_name}{Environment.NewLine}");
-            armorsTable.Append($"| {Localization.instance.Localize(item.m_shared.m_name)}{Environment.NewLine}");
             armorsTable.Append($"| {item.m_shared.m_maxQuality}{Environment.NewLine}");
             armorsTable.Append($"| {item.m_shared.m_maxDurability}{Environment.NewLine}");
 
@@ -143,7 +139,6 @@ public static class ObjectDBExtensions
             ammoTable.Append($"| {ind++}{Environment.NewLine}");
             ammoTable.Append($"| {itemGameObject.name}{Environment.NewLine}");
             ammoTable.Append($"| {item.m_shared.m_name}{Environment.NewLine}");
-            ammoTable.Append($"| {Localization.instance.Localize(item.m_shared.m_name)}{Environment.NewLine}");
             ammoTable.Append($"| {item.m_shared.m_maxStackSize}{Environment.NewLine}");
 
             ammoTable.Append(
@@ -164,7 +159,6 @@ public static class ObjectDBExtensions
             otherItemsTable.Append($"| {ind++}{Environment.NewLine}");
             otherItemsTable.Append($"| {itemGameObject.name}{Environment.NewLine}");
             otherItemsTable.Append($"| {item.m_shared.m_name}{Environment.NewLine}");
-            otherItemsTable.Append($"| {Localization.instance.Localize(item.m_shared.m_name)}{Environment.NewLine}");
             otherItemsTable.Append($"| {item.m_shared.m_itemType}{Environment.NewLine}");
             otherItemsTable.Append($"| {item.m_shared.m_teleportable}{Environment.NewLine}");
             otherItemsTable.Append($"| {item.m_shared.m_value}{Environment.NewLine}");

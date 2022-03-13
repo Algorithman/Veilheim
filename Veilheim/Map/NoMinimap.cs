@@ -20,7 +20,7 @@ namespace Veilheim.Map
             On.Minimap.SetMapMode += DontShowMinimap_Patch;
         }
 
-        private static void DontShowMinimap_Patch(On.Minimap.orig_SetMapMode orig, Minimap self, int mode)
+        private static void DontShowMinimap_Patch(On.Minimap.orig_SetMapMode orig, Minimap self, Minimap.MapMode mode)
         {
             if (ConfigUtil.Get<bool>("Map", "showNoMinimap"))
             {
@@ -29,19 +29,19 @@ namespace Veilheim.Map
                     if (ZInput.GetButtonDown("Map") || ZInput.GetButtonDown("JoyMap") || (self.m_mode == Minimap.MapMode.Large &&
                                                                                           (Input.GetKeyDown(KeyCode.Escape) || ZInput.GetButtonDown("JoyButtonB"))))
                     {
-                        if (mode == (int)Minimap.MapMode.Large)
+                        if (mode == Minimap.MapMode.Large)
                         {
                             return;
                         }
 
-                        if ((mode == (int)Minimap.MapMode.Small) && (self.m_mode == Minimap.MapMode.Large))
+                        if ((mode == Minimap.MapMode.Small) && (self.m_mode == Minimap.MapMode.Large))
                         {
                             mode = (int)Minimap.MapMode.None;
                         }
                     }
                     else
                     {
-                        if ((mode == (int)Minimap.MapMode.Small) && (self.m_mode == Minimap.MapMode.None))
+                        if ((mode == Minimap.MapMode.Small) && (self.m_mode == Minimap.MapMode.None))
                         {
                             mode = (int)Minimap.MapMode.None;
                         }

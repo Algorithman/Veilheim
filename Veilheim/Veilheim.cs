@@ -8,9 +8,11 @@ using BepInEx;
 using BepInEx.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Jotunn.Utils;
 using UnityEngine;
 using Veilheim.AssetManagers;
-using Veilheim.Blueprints;
+using Veilheim.Patches;
 
 namespace Veilheim
 {
@@ -20,7 +22,7 @@ namespace Veilheim
     {
         public const string PluginGUID = "de.sirskunkalot.valheim.veilheim";
         public const string PluginName = "Veilheim";
-        public const string PluginVersion = "0.3.20";
+        public const string PluginVersion = "0.4.0";
 
         // Static instance needed for Coroutines
         public static VeilheimPlugin Instance = null;
@@ -32,7 +34,6 @@ namespace Veilheim
         private readonly List<Type> managerTypes = new List<Type>()
         {
             typeof(GUIManager),
-            typeof(BlueprintManager)
         };
 
         // List of all managers
@@ -59,8 +60,40 @@ namespace Veilheim
                 manager.Init();
             }
 
+            On.ZNet.RPC_ClientHandshake += ZNet_RPC_ClientHandshake;
+
+            GhostRotationTranspiler.PatchUpdatePlacementGhost();
+
             // Done
             Jotunn.Logger.LogInfo($"{PluginName} v{PluginVersion} loaded");
+        }
+
+        private void ZNet_RPC_ClientHandshake(On.ZNet.orig_RPC_ClientHandshake orig, ZNet self, ZRpc rpc, bool needPassword)
+        {
+            if (Environment.GetCommandLineArgs().Any(x => x.ToLower() == "+password"))
+            {
+                var args = Environment.GetCommandLineArgs();
+
+                // find password argument index
+                var index = 0;
+                while (index < args.Length && args[index].ToLower() != "+password")
+                {
+                    index++;
+                }
+
+                index++;
+
+                // is there a password after +password?
+                if (index < args.Length)
+                {
+                    // do normal handshake
+                    self.m_connectingDialog.gameObject.SetActive(false);
+                    self.SendPeerInfo(rpc, args[index]);
+                    return;
+                }
+            }
+
+            orig(self, rpc, needPassword);
         }
 
         private void CreateConfigBindings()
@@ -91,15 +124,6 @@ namespace Veilheim
             Config.Bind(section, "allowPlacementWithoutMaterial", true,
                 new ConfigDescription("Allow placement of blueprints without materials", null, new object[] { new ConfigurationManagerAttributes() { IsAdminOnly = true } }));
 
-            ShaderHelper.showRealTexturesConfig = Config.Bind(section, "showRealTextures", false, new ConfigDescription("Show real textures on planned pieces"));
-            ShaderHelper.unsupportedColorConfig = Config.Bind(section, "unsupportedColor", new Color(1f, 1f, 1f, 0.1f), new ConfigDescription("Color of unsupported blueprint pieces"));
-            ShaderHelper.supportedColorConfig = Config.Bind(section, "supportedColor", new Color(1f, 1f, 1f, 0.5f), new ConfigDescription("Color of supported blueprint pieces"));
-            ShaderHelper.transparencyConfig = Config.Bind(section, "transparency", 0.30f, new ConfigDescription("Additional transparency for blueprint pieces", new AcceptableValueRange<float>(0f, 1f)));
-
-            ShaderHelper.showRealTexturesConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
-            ShaderHelper.unsupportedColorConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
-            ShaderHelper.supportedColorConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
-            ShaderHelper.transparencyConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
 
             // Section ProductionInputAmount
             section = "ProductionInputAmounts";

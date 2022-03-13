@@ -71,8 +71,15 @@ namespace Veilheim.AssetManagers
             LoadGUIPrefab(assetBundle, "PortalButtonBox");
             assetBundle.Unload(false);
 
+            Jotunn.Managers.GUIManager.OnCustomGUIAvailable += GUIManager_OnCustomGUIAvailable;
+
             // Done
             Logger.LogInfo("Initialized GUIManager");
+        }
+
+        private void GUIManager_OnCustomGUIAvailable()
+        {
+            PixelFix = Jotunn.Managers.GUIManager.CustomGUIFront;
         }
 
         /// <summary>
@@ -182,18 +189,6 @@ namespace Veilheim.AssetManagers
                 finally
                 {
                     needsLoad = false;
-                }
-            }
-
-            if (PixelFix == null && SceneManager.GetActiveScene().name == "main" && SceneManager.GetActiveScene().isLoaded)
-            {
-                PixelFix = GameObject.Find("_GameMain/GUI/PixelFix");
-
-                if (PixelFix == null)
-                {
-                    Logger.LogError("PixelFix not found");
-                    needsLoad = false;
-                    return;
                 }
             }
         }

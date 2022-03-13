@@ -33,6 +33,6 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("0.3.20.0")]
-[assembly: AssemblyVersion("0.3.20.0")]
-[assembly: AssemblyFileVersion("0.3.20.0")]
+[assembly: AssemblyVersion(Veilheim.VeilheimPlugin.PluginVersion+".0")]
+[assembly: AssemblyFileVersion(Veilheim.VeilheimPlugin.PluginVersion+".0")]
 [assembly: NeutralResourcesLanguage("en")]

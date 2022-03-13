@@ -75,7 +75,7 @@ namespace Veilheim.Map
                     TextInput.instance.m_textField.text = portal.m_tag;
 
                     // simulate enter key
-                    TextInput.instance.OnEnter(portal.m_tag);
+                    TextInput.instance.OnEnter();
 
                     // hide textinput
                     TextInput.instance.Hide();
