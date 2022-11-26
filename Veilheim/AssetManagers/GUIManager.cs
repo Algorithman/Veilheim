@@ -16,9 +16,9 @@ using Jotunn.Utils;
 
 namespace Veilheim.AssetManagers
 {
-    internal class GUIManager : Manager, IPointerClickHandler
+    internal class GUIManagerxx : Manager, IPointerClickHandler
     {
-        internal static GUIManager Instance { get; private set; }
+        internal static GUIManagerxx Instance { get; private set; }
 
         internal static GameObject GUIContainer;
 
@@ -83,7 +83,7 @@ namespace Veilheim.AssetManagers
         private void LoadGUIPrefab(AssetBundle assetBundle, string assetName)
         {
             var prefab = assetBundle.LoadAsset<GameObject>(assetName);
-            Veilheim.AssetManagers.GUIManager.Instance.AddPrefab(assetName, prefab);
+            Jotunn.Managers.PrefabManager.Instance.AddPrefab(prefab);
         }
 
         internal void AddPrefab(string name, GameObject prefab)
@@ -117,6 +117,7 @@ namespace Veilheim.AssetManagers
 
         private void OnGUI()
         {
+            /*
             // Load valheim GUI assets
             if (needsLoad && SceneManager.GetActiveScene().name == "start" && SceneManager.GetActiveScene().isLoaded)
             {
@@ -195,7 +196,7 @@ namespace Veilheim.AssetManagers
                     needsLoad = false;
                     return;
                 }
-            }
+            }*/
         }
 
         public void OnPointerClick(PointerEventData eventData)

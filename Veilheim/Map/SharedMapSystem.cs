@@ -18,7 +18,7 @@ using Logger = Jotunn.Logger;
 
 namespace Veilheim.Map
 {
-    public class SharedMapPatches 
+    public class SharedMapPatches
     {
         private static bool isInSetMapData;
         private static readonly List<int> explorationQueue = new List<int>();
@@ -37,7 +37,6 @@ namespace Veilheim.Map
             On.Game.Start += Register_RPC_MapSharing;
             On.ZNet.Shutdown += SaveExplorationData;
             On.Minimap.Awake += LoadExplorationData;
-            On.Minimap.UpdateExplore += GetSharedExploration;
         }
 
         /// <summary>
@@ -45,33 +44,8 @@ namespace Veilheim.Map
         /// </summary>
         private static void GetSharedExploration(On.Minimap.orig_UpdateExplore orig, Minimap self, float dt, Player player)
         {
-            self.m_exploreTimer += Time.deltaTime;
-            if (self.m_exploreTimer > self.m_exploreInterval)
-            {
-                if (ConfigUtil.Get<bool>("MapServer", "shareMapProgression"))
-                {
-                    if (self.m_exploreTimer + Time.deltaTime > self.m_exploreInterval)
-                    {
-                        var tempPlayerInfos = new List<ZNet.PlayerInfo>();
-                        ZNet.instance.GetOtherPublicPlayers(tempPlayerInfos);
 
-                        foreach (var tempPlayer in tempPlayerInfos)
-                        {
-                            ExploreLocal(tempPlayer.m_position);
-                        }
-                    }
-                }
-
-                if (playerIsOnShip && ConfigUtil.Get<float>("MapServer", "exploreRadiusSailing") > ConfigUtil.Get<float>("MapServer", "exploreRadius"))
-                {
-                    self.Explore(Player.m_localPlayer.transform.position, ConfigUtil.Get<float>("MapServer", "exploreRadiusSailing"));
-                }
-                else
-                {
-                    self.Explore(Player.m_localPlayer.transform.position, ConfigUtil.Get<float>("MapServer", "exploreRadius"));
-                }
-                orig(self, dt, player);
-            }
+            orig(self, dt, player);
         }
 
         /// <summary>
@@ -125,9 +99,47 @@ namespace Veilheim.Map
         private static void Register_RPC_MapSharing(On.Game.orig_Start orig, Game self)
         {
             // Map data Receive
-            ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_ReceiveExploration), new Action<long, ZPackage>(RPC_Veilheim_ReceiveExploration));
-            ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_ReceiveExploration_OnExplore), new Action<long, ZPackage>(RPC_Veilheim_ReceiveExploration_OnExplore));
+            try
+            {
+                ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_ReceiveExploration),
+                    new Action<long, ZPackage>(RPC_Veilheim_ReceiveExploration));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogInfo(nameof(RPC_Veilheim_ReceiveExploration) + " was already added.");
+            }
 
+            try
+            {
+                ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_ReceiveExploration_OnExplore),
+                    new Action<long, ZPackage>(RPC_Veilheim_ReceiveExploration_OnExplore));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogInfo(nameof(RPC_Veilheim_ReceiveExploration_OnExplore) + " was already added.");
+            }
+
+
+            // Map data Receive
+            try
+            {
+                ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_ReceiveExploration_ToServer),
+                    new Action<long, ZPackage>(RPC_Veilheim_ReceiveExploration_ToServer));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogInfo(nameof(RPC_Veilheim_ReceiveExploration_ToServer) + " was already added.");
+            }
+
+            try
+            {
+                ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_ReceiveExploration_OnExplore_ToServer),
+                    new Action<long, ZPackage>(RPC_Veilheim_ReceiveExploration_OnExplore_ToServer));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogInfo(nameof(RPC_Veilheim_ReceiveExploration_OnExplore_ToServer) + " was already added.");
+            }
             orig(self);
         }
 
@@ -147,7 +159,7 @@ namespace Veilheim.Map
                 Logger.LogInfo("Sending Map data initially to server");
                 // After login, send map data to server (and get new map data back)
                 var pkg = new ZPackage(CreateExplorationData().ToArray());
-                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), nameof(RPC_Veilheim_ReceiveExploration), pkg);
+                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), nameof(RPC_Veilheim_ReceiveExploration_ToServer), pkg);
             }
 
             isInSetMapData = false;
@@ -184,7 +196,36 @@ namespace Veilheim.Map
         {
             bool doPayload = self.m_exploreTimer + Time.deltaTime > self.m_exploreInterval;
 
-            orig(self, dt, player);
+            if (doPayload)
+            {
+                if (ConfigUtil.Get<bool>("MapServer", "shareMapProgression"))
+                {
+                    if (doPayload)
+                    {
+                        var tempPlayerInfos = new List<ZNet.PlayerInfo>();
+                        ZNet.instance.GetOtherPublicPlayers(tempPlayerInfos);
+
+                        foreach (var tempPlayer in tempPlayerInfos)
+                        {
+                            ExploreLocal(tempPlayer.m_position);
+                        }
+                    }
+                }
+
+                if (playerIsOnShip && ConfigUtil.Get<float>("MapServer", "exploreRadiusSailing") > ConfigUtil.Get<float>("MapServer", "exploreRadius"))
+                {
+                    self.Explore(Player.m_localPlayer.transform.position, ConfigUtil.Get<float>("MapServer", "exploreRadiusSailing"));
+                }
+                else
+                {
+                    self.Explore(Player.m_localPlayer.transform.position, ConfigUtil.Get<float>("MapServer", "exploreRadius"));
+                }
+                self.m_exploreTimer = 0f;
+            }
+            else
+            {
+                orig(self, dt, player);
+            }
 
             // disregard mini changes for now, lets build up some first
             if (explorationQueue.Count >= 10 && doPayload)
@@ -206,7 +247,7 @@ namespace Veilheim.Map
                 }
 
                 // Invoke RPC on server and send data
-                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), nameof(RPC_Veilheim_ReceiveExploration_OnExplore), queueData);
+                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), nameof(RPC_Veilheim_ReceiveExploration_OnExplore_ToServer), queueData);
             }
         }
 
@@ -246,6 +287,27 @@ namespace Veilheim.Map
                 return;
             }
 
+            if (ZNet.instance.IsClientInstance())
+            {
+                Logger.LogInfo("Received map data from server");
+
+                // Set flag to prevent enqueuing again for sending, since it can be new
+                ApplyMapData(mapData);
+            }
+        }
+
+        /// <summary>
+        ///     Apply sent exploration data to local map
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="mapData"></param>
+        public static void RPC_Veilheim_ReceiveExploration_ToServer(long sender, ZPackage mapData)
+        {
+            if (mapData == null)
+            {
+                return;
+            }
+
             if (ZNet.instance.IsServerInstance())
             {
                 Logger.LogInfo($"Received map data from client #{sender}");
@@ -258,18 +320,13 @@ namespace Veilheim.Map
 
                 foreach (var player in tempPlayerInfos)
                 {
-                    Logger.LogInfo($"Sending map data to player {player.m_name} #{ZNet.instance.GetPeerByPlayerName(player.m_name)}");
-                    ZRoutedRpc.instance.InvokeRoutedRPC(ZNet.instance.GetPeerByPlayerName(player.m_name).m_uid, nameof(RPC_Veilheim_ReceiveExploration),
-                        newMapData);
+                    long playerUid = ZNet.instance.GetPeerByPlayerName(player.m_name).m_uid;
+                    if (playerUid != sender)
+                    {
+                        Logger.LogInfo($"Sending map data to player {player.m_name} #{ZNet.instance.GetPeerByPlayerName(player.m_name)}");
+                        ZRoutedRpc.instance.InvokeRoutedRPC(playerUid, nameof(RPC_Veilheim_ReceiveExploration), newMapData);
+                    }
                 }
-            }
-
-            if (ZNet.instance.IsClientInstance())
-            {
-                Logger.LogInfo("Received map data from server");
-
-                // Set flag to prevent enqueuing again for sending, since it can be new
-                ApplyMapData(mapData);
             }
         }
 
@@ -290,6 +347,8 @@ namespace Veilheim.Map
                         var state = br.ReadBoolean();
                         var idx = 0;
 
+                        bool applyFog = false;
+
                         while (idx < Minimap.instance.m_explored.Length)
                         {
                             var count = br.ReadInt32();
@@ -302,6 +361,7 @@ namespace Veilheim.Map
                                 }
                                 else if (state)
                                 {
+                                    applyFog |= state && !Minimap.instance.m_explored[idx];
                                     Minimap.instance.m_explored[idx] |= state;
                                 }
 
@@ -310,6 +370,11 @@ namespace Veilheim.Map
                             }
 
                             state = !state;
+                        }
+
+                        if (!isServer)
+                        {
+                            Minimap.instance.m_fogTexture.Apply();
                         }
                     }
                 }
@@ -344,6 +409,78 @@ namespace Veilheim.Map
                     Minimap.instance.m_explored[toExplore] = true;
                     numberOfEntries--;
                 }
+            }
+            else
+            {
+                var numberOfEntries = mapData.ReadInt();
+                Logger.LogInfo($"Received exploration diff data from server #{sender}, {numberOfEntries} items");
+
+                bool applyFog = false;
+
+                while (numberOfEntries > 0)
+                {
+                    var toExplore = mapData.ReadInt();
+                    applyFog |= !Minimap.instance.m_explored[toExplore];
+                    Minimap.instance.m_explored[toExplore] = true;
+
+                    int x = toExplore % Minimap.instance.m_textureSize;
+                    int y = toExplore / Minimap.instance.m_textureSize;
+
+                    Color pixel = Minimap.instance.m_fogTexture.GetPixel(x, y);
+                    pixel.r = 0f;
+                    Minimap.instance.m_fogTexture.SetPixel(x, y, pixel);
+                    
+                    numberOfEntries--;
+                }
+
+                if (applyFog)
+                {
+                    Logger.LogInfo("Applying FOG");
+                    Minimap.instance.m_fogTexture.Apply();
+                }
+            }
+        }
+
+        /// <summary>
+        ///     RPC to receive new exploration data from client
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="mapData"></param>
+        public static void RPC_Veilheim_ReceiveExploration_OnExplore_ToServer(long sender, ZPackage mapData)
+        {
+            if (mapData == null)
+            {
+                return;
+            }
+
+            if (ZNet.instance.IsServerInstance())
+            {
+                var numberOfEntries = mapData.ReadInt();
+                Logger.LogInfo($"Received exploration diff data from client #{sender}, {numberOfEntries} items");
+
+                while (numberOfEntries > 0)
+                {
+                    var toExplore = mapData.ReadInt();
+                    Minimap.instance.m_explored[toExplore] = true;
+                    numberOfEntries--;
+                }
+
+                mapData.SetPos(0);
+
+                var tempPlayerInfos = new List<ZNet.PlayerInfo>();
+                ZNet.instance.GetOtherPublicPlayers(tempPlayerInfos);
+
+
+                foreach (var player in tempPlayerInfos)
+                {
+                    long playerUid = ZNet.instance.GetPeerByPlayerName(player.m_name).m_uid;
+                    if (playerUid != sender)
+                    {
+                        Logger.LogInfo($"Sending map data to player {player.m_name} #{ZNet.instance.GetPeerByPlayerName(player.m_name)}");
+                        ZRoutedRpc.instance.InvokeRoutedRPC(playerUid, nameof(RPC_Veilheim_ReceiveExploration_OnExplore), mapData);
+                    }
+                }
+
             }
         }
 

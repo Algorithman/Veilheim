@@ -4,24 +4,38 @@
 // File:    MapHooks.cs
 // Project: Veilheim
 
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using BepInEx;
+using BepInEx.Configuration;
 using Jotunn.Utils;
+using Jotunn.Configs;
 using UnityEngine;
 using Veilheim.Utils;
-
+using Logger = Jotunn.Logger;
 namespace Veilheim.Map
 {
     public class Map_Patches
     {
-
+        
         [PatchInit(0)]
         public static void InitializePatches()
         {
             On.TextInput.Hide += ResetPortalSelector;
             On.TeleportWorld.Interact += ShowPortalSelection;
             On.Menu.IsVisible += PortalGUI_Mouselook_Patch;
+
+            On.ZPlayFabSocket.KickstartAfterRecovery += ZPlayFabSocket_KickstartAfterRecovery;
         }
 
-        /// <summary>
+        private static void ZPlayFabSocket_KickstartAfterRecovery(On.ZPlayFabSocket.orig_KickstartAfterRecovery orig, ZPlayFabSocket self)
+        {
+            Logger.LogInfo($"KickstartRecovery Before Data: {self.m_inFlightQueue.Bytes} <-> {self.m_retransmitCache.Sum(x=>x.Length)}");
+            orig(self);
+            Logger.LogInfo($"KickstartRecovery After Data: {self.m_inFlightQueue.Bytes} <-> {self.m_retransmitCache.Sum(x => x.Length)}");
+        }
+
+        /// <summary>m
         ///     CLIENT SIDE: Disable mouselook when portal selection gui is visible
         /// </summary>
         private static bool PortalGUI_Mouselook_Patch(On.Menu.orig_IsVisible orig)
@@ -34,9 +48,9 @@ namespace Veilheim.Map
         /// <summary>
         ///     CLIENT SIDE: Creates a <see cref="PortalSelectionGUI" /> when interacting with a portal
         /// </summary>
-        private static bool ShowPortalSelection(On.TeleportWorld.orig_Interact orig, TeleportWorld self, Humanoid human, bool hold)
+        private static bool ShowPortalSelection(On.TeleportWorld.orig_Interact orig, TeleportWorld self, Humanoid human, bool hold, bool alt)
         {
-            bool result = orig(self, human, hold);
+            bool result = orig(self, human, hold, alt);
             // only act on clients
             if (ZNet.instance.IsServerInstance())
             {

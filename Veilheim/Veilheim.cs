@@ -6,21 +6,25 @@
 
 using BepInEx;
 using BepInEx.Configuration;
+using Jotunn.Utils;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Veilheim.AssetManagers;
-using Veilheim.Blueprints;
+using Veilheim.Map;
+using Veilheim.Patches;
+
 
 namespace Veilheim
 {
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
+    [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     [BepInDependency(Jotunn.Main.ModGuid)]
     internal class VeilheimPlugin : BaseUnityPlugin
     {
         public const string PluginGUID = "de.sirskunkalot.valheim.veilheim";
         public const string PluginName = "Veilheim";
-        public const string PluginVersion = "0.3.20";
+        public const string PluginVersion = "0.50.4";
 
         // Static instance needed for Coroutines
         public static VeilheimPlugin Instance = null;
@@ -28,44 +32,61 @@ namespace Veilheim
         // Unity GameObject as a root to all managers
         internal static GameObject RootObject;
 
-        // Load order for managers
-        private readonly List<Type> managerTypes = new List<Type>()
-        {
-            typeof(GUIManager),
-            typeof(BlueprintManager)
-        };
-
-        // List of all managers
-        private readonly List<Manager> managers = new List<Manager>();
-
         private void Awake()
         {
             Instance = this;
 
             CreateConfigBindings();
 
+            ProductionInputAmounts.InitializePatches();
+            Map_Patches.InitializePatches();
+            NoMinimap.InitializePatches();
+            PortalsOnMap.InitializePatches();
+            PublicPostion_Patches.InitializePatches();
+            SharedMapPatches.InitializePatches();
+
+
+            // Load assets
+            AssetBundle assetBundle;
+
+            assetBundle = AssetUtils.LoadAssetBundleFromResources("configurationgui", typeof(VeilheimPlugin).Assembly);
+            LoadGUIPrefab(assetBundle, "ConfigurationEntry");
+            LoadGUIPrefab(assetBundle, "ConfigurationSection");
+            LoadGUIPrefab(assetBundle, "ConfigurationGUIRoot");
+            assetBundle.Unload(false);
+
+            assetBundle = AssetUtils.LoadAssetBundleFromResources("portalselectiongui", typeof(VeilheimPlugin).Assembly);
+            LoadGUIPrefab(assetBundle, "PortalButtonBox");
+            assetBundle.Unload(false);
+
+
+
             // Root GameObject for all plugin components
             RootObject = new GameObject("_VeilheimPlugin");
             DontDestroyOnLoad(RootObject);
-
-            // Create and initialize all managers
-            foreach (Type managerType in managerTypes)
-            {
-                managers.Add((Manager)RootObject.AddComponent(managerType));
-            }
-
-            foreach (Manager manager in managers)
-            {
-                manager.Init();
-            }
 
             // Done
             Jotunn.Logger.LogInfo($"{PluginName} v{PluginVersion} loaded");
         }
 
+
+        /// <summary>
+        ///     Load a GUI prefab from a bundle and register it in the <see cref="GUIManager" />.
+        /// </summary>
+        /// <param name="assetBundle"></param>
+        /// <param name="assetName"></param>
+        private void LoadGUIPrefab(AssetBundle assetBundle, string assetName)
+        {
+            var prefab = assetBundle.LoadAsset<GameObject>(assetName);
+            Jotunn.Managers.PrefabManager.Instance.AddPrefab(prefab);
+        }
+
+
         private void CreateConfigBindings()
         {
             string section;
+
+            Config.SaveOnConfigSet = true;
 
             // Section Map
             section = "Map";
@@ -90,16 +111,6 @@ namespace Veilheim
             section = "Blueprints";
             Config.Bind(section, "allowPlacementWithoutMaterial", true,
                 new ConfigDescription("Allow placement of blueprints without materials", null, new object[] { new ConfigurationManagerAttributes() { IsAdminOnly = true } }));
-
-            ShaderHelper.showRealTexturesConfig = Config.Bind(section, "showRealTextures", false, new ConfigDescription("Show real textures on planned pieces"));
-            ShaderHelper.unsupportedColorConfig = Config.Bind(section, "unsupportedColor", new Color(1f, 1f, 1f, 0.1f), new ConfigDescription("Color of unsupported blueprint pieces"));
-            ShaderHelper.supportedColorConfig = Config.Bind(section, "supportedColor", new Color(1f, 1f, 1f, 0.5f), new ConfigDescription("Color of supported blueprint pieces"));
-            ShaderHelper.transparencyConfig = Config.Bind(section, "transparency", 0.30f, new ConfigDescription("Additional transparency for blueprint pieces", new AcceptableValueRange<float>(0f, 1f)));
-
-            ShaderHelper.showRealTexturesConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
-            ShaderHelper.unsupportedColorConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
-            ShaderHelper.supportedColorConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
-            ShaderHelper.transparencyConfig.SettingChanged += ShaderHelper.UpdateAllTextures;
 
             // Section ProductionInputAmount
             section = "ProductionInputAmounts";

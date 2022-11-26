@@ -75,8 +75,25 @@ namespace Veilheim.Map
         /// </summary>
         private static void RegisterRPC(On.Game.orig_Start orig, Game self)
         {
-            ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_TeleporterSyncInit), new Action<long, ZPackage>(RPC_Veilheim_TeleporterSyncInit));
-            ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_TeleporterSync), new Action<long, ZPackage>(RPC_Veilheim_TeleporterSync));
+
+            try
+            {
+                ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_TeleporterSyncInit), new Action<long, ZPackage>(RPC_Veilheim_TeleporterSyncInit));
+            }
+            catch (Exception e)
+            {
+                Logger.LogInfo(nameof(RPC_Veilheim_TeleporterSyncInit) + " was already added.");
+            }
+
+            try
+            {
+                ZRoutedRpc.instance.Register(nameof(RPC_Veilheim_TeleporterSync),
+                    new Action<long, ZPackage>(RPC_Veilheim_TeleporterSync));
+            }
+            catch (Exception e)
+            {
+                Logger.LogInfo(nameof(RPC_Veilheim_TeleporterSync) + " was already added.");
+            }
 
             orig(self);
         }

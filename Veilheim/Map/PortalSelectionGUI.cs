@@ -4,6 +4,7 @@
 // File:    PortalSelectionGUI.cs
 // Project: Veilheim
 
+using Jotunn.Managers;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -28,14 +29,29 @@ namespace Veilheim.Map
         {
             if (GUIRoot == null)
             {
-                GUIRoot = Object.Instantiate(GUIManager.Instance.GetPrefab("PortalButtonBox"));
-                GUIRoot.transform.SetParent(GUIManager.PixelFix.transform, false);
-                GUIRoot.GetComponentInChildren<Image>().sprite = GUIManager.Instance.GetSprite("woodpanel_trophys");
+
+                if (GUIManager.Instance == null)
+                {
+                    Logger.LogError("GUIManager instance is null");
+                    return;
+                }
+
+                if (!GUIManager.CustomGUIFront)
+                {
+                    Logger.LogError("GUIManager CustomGUI is null");
+                    return;
+                }
+
+
+                GUIRoot = Object.Instantiate(Jotunn.Managers.PrefabManager.Instance.GetPrefab("PortalButtonBox"));
+                GUIRoot.transform.SetParent(Jotunn.Managers.GUIManager.CustomGUIFront.transform, false);
+                GUIRoot.GetComponentInChildren<Image>().sprite = Jotunn.Managers.GUIManager.Instance.GetSprite("woodpanel_trophys");
             }
 
             foreach (var button in teleporterButtons)
             {
                 Object.Destroy(button);
+
             }
 
             teleporterButtons.Clear();
@@ -66,7 +82,7 @@ namespace Veilheim.Map
                     continue;
                 }
 
-                var newButton = GUIManager.Instance.CreateButton(portal.m_tag, GUIRoot.transform.Find("Image/Scroll View/Viewport/Content"), new Vector2(0, 1),
+                var newButton = Jotunn.Managers.GUIManager.Instance.CreateButton(portal.m_tag, GUIRoot.transform.Find("Image/Scroll View/Viewport/Content"), new Vector2(0, 1),
                     new Vector2(0, 1), new Vector2(0, 0));
 
                 newButton.GetComponent<Button>().onClick.AddListener(() =>
@@ -75,7 +91,7 @@ namespace Veilheim.Map
                     TextInput.instance.m_textField.text = portal.m_tag;
 
                     // simulate enter key
-                    TextInput.instance.OnEnter(portal.m_tag);
+                    TextInput.instance.OnEnter();
 
                     // hide textinput
                     TextInput.instance.Hide();
@@ -94,6 +110,11 @@ namespace Veilheim.Map
 
             GUIRoot.transform.Find("Image/Scroll View/Viewport/Content").GetComponent<RectTransform>()
                 .SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, lines * 50f + 50f);
+            GUIRoot.transform.localPosition = new Vector3(25, -100);
+            Logger.LogInfo(GUIRoot.transform.localPosition.ToString());
+            Logger.LogInfo(GUIRoot.transform.position.ToString());
+
+
             GUIRoot.SetActive(teleporterButtons.Count > 0);
         }
 
